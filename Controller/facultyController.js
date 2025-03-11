@@ -381,8 +381,12 @@ export const FacultyScanAuth = async (req, res) => {
 
     // Fetch the batch ID linked to the faculty
     //try this
+    const isValidObjectId = (id) => ObjectId.isValid(id) && String(new ObjectId(id)) === id;
+
     const facultyBatch = await prisma.batch.findFirst({
-      where: { inchargeId: new ObjectId(facultyId) },
+      where: {
+        inchargeId: isValidObjectId(facultyId) ? new ObjectId(facultyId) : facultyId, // Use string directly if not ObjectId
+      },
       select: { batchId: true },
     });
     
