@@ -1,7 +1,7 @@
 import { PrismaClient } from "@prisma/client";
 
 import jwt from "jsonwebtoken";
-
+const { ObjectId } = require("mongodb");
 const prisma = new PrismaClient();
 
 import bcrypt from "bcrypt";
@@ -380,10 +380,10 @@ export const FacultyScanAuth = async (req, res) => {
     // Fetch the batch ID linked to the faculty
     //try this
     const facultyBatch = await prisma.batch.findFirst({
-      where: { inchargeId: facultyId },
+      where: { inchargeId: ObjectId(facultyId) },
       select: { batchId: true },
     });
-
+    
     if (!facultyBatch) {
       return res.status(404).json({ message: "Batch not found for faculty." });
     }
