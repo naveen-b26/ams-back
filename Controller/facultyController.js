@@ -379,7 +379,7 @@ export const FacultyScanAuth = async (req, res) => {
 
     // Fetch the batch ID linked to the faculty
     const facultyBatch = await prisma.batch.findFirst({
-      where: { facultyId: facultyId },
+      where: { inchargeId: facultyId },
       select: { batchId: true },
     });
 
