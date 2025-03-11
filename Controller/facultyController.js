@@ -383,12 +383,13 @@ export const FacultyScanAuth = async (req, res) => {
     //try this
     const isValidObjectId = (id) => ObjectId.isValid(id) && String(new ObjectId(id)) === id;
 
-    const facultyBatch = await prisma.batch.findFirst({
-      where: {
-        inchargeId: isValidObjectId(facultyId) ? new ObjectId(facultyId) : facultyId, // Use string directly if not ObjectId
-      },
-      select: { batchId: true },
-    });
+const facultyBatch = await prisma.batch.findFirst({
+  where: {
+    inchargeId: isValidObjectId(facultyId) ? new ObjectId(facultyId) : facultyId, // Fix here
+  },
+  select: { batchId: true },
+});
+
     
     if (!facultyBatch) {
       return res.status(404).json({ message: "Batch not found for faculty." });
