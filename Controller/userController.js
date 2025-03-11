@@ -560,6 +560,7 @@ export const mobileLoginFaculty = async (req, res) => {
       facultyId: login.userID,
       name: login.faculty.name,
       email: login.email,
+      id:login.id
     });
   } catch (error) {
     res.status(500).json({ success: false, message: error.message });
