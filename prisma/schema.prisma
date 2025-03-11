@@ -1,0 +1,188 @@
+// This is your Prisma schema file
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "mongodb"
+  url      = env("DATABASE_URL")
+}
+
+model Image {
+  id       String @id @default(auto()) @map("_id") @db.ObjectId
+  imageUrl String
+  publicId String
+  userId   String @unique
+  user     user   @relation(fields: [userId], references: [userID], onDelete: Cascade)
+}
+
+model user {
+  id        String   @id @default(auto()) @map("_id") @db.ObjectId
+  userID    String   @unique
+  role      Role
+  email     String   @unique
+  password  String
+  gender    Gender
+  phy_ID    String?  @unique
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  roleId String? @unique @db.ObjectId
+
+  student student? @relation(fields: [roleId], references: [id])
+  faculty faculty? @relation(fields: [roleId], references: [id])
+  deo     deo?     @relation(fields: [roleId], references: [id])
+  admin   admin?   @relation(fields: [roleId], references: [id])
+  image   Image? // One-to-One Relationship (Only one image per user)
+}
+
+// Faculty Model
+model faculty {
+  id               String            @id @default(auto()) @map("_id") @db.ObjectId
+  facultyId        String            @unique
+  name             String
+  experience       String
+  designation      DesignationEnum
+  department       DepartmentEnum
+  isVerified       Boolean           @default(false)
+  subject          String
+  contact          String
+  batches          batch[]
+  user             user?
+  FacultyTimetable FacultyTimetable?
+}
+
+enum DepartmentEnum {
+  CSE
+  CSM
+  IT
+  IOT
+  EEE
+  ECE
+  CIVIL
+  MECH
+  PLACEMENT
+}
+
+enum DesignationEnum {
+  PROFESSOR
+  ASSISTANT_PROFESSOR
+  LECTURER
+  VISITING_FACULTY
+}
+
+// Admin Model
+model admin {
+  id             String   @id @default(auto()) @map("_id") @db.ObjectId
+  adminId        String   @unique
+  name           String
+  experience     String
+  designation    String
+  department     String
+  batchIds       String[] @db.ObjectId
+  ManagedBatches batch[]  @relation(fields: [batchIds], references: [id])
+  user           user?
+}
+
+// Student Model
+model student {
+  id                   String       @id @default(auto()) @map("_id") @db.ObjectId
+  studentId            String       @unique
+  name                 String
+  department           String
+  section              String
+  batchYear            String // e.g., "2021-2025"
+  phoneNumber          String
+  parentNumber         String
+  attendancePercentage String       @default("0%")
+  Attendance           Attendance[]
+  batchIds             String[]     @db.ObjectId // Array of batch IDs the student belongs to
+  batches              batch[]      @relation(fields: [batchIds], references: [id]) // Many-to-many relation
+  user                 user?
+}
+
+// DEO (Departmental Executive Officer) Model
+model deo {
+  id             String   @id @default(auto()) @map("_id") @db.ObjectId
+  deoId          String   @unique
+  name           String
+  experience     String
+  designation    String
+  department     String
+  user           user?
+  batchIds       String[] @db.ObjectId // Array of batch IDs the student belongs to
+  ManagedBatches batch[]  @relation(fields: [batchIds], references: [id]) // Many-to-many relation
+}
+
+// Batch Model
+model batch {
+  id             String           @id @default(auto()) @map("_id") @db.ObjectId
+  batchId        String           @unique
+  name           String           @unique
+  branch         String
+  Batchyear      String
+  inchargeId     String?          @db.ObjectId
+  faculty        faculty?         @relation(fields: [inchargeId], references: [id])
+  studentIds     String[]         @db.ObjectId
+  students       student[]        @relation(fields: [studentIds], references: [id]) // Many-to-many relation
+  batchTimetable batchTimetable[]
+  Attendance     Attendance[]
+  deoIds         String[]         @db.ObjectId
+  deo            deo[]            @relation(fields: [deoIds], references: [id]) // Corrected relation
+  adminIds       String[]         @db.ObjectId
+  admin          admin[]          @relation(fields: [adminIds], references: [id])
+}
+
+// Batch Timetable Model
+model batchTimetable {
+  id       String @id @default(auto()) @map("_id") @db.ObjectId
+  batch_id String @db.ObjectId
+  schedule Json // Stores timetable details (e.g., faculty and subject for each period)
+  batch    batch  @relation(fields: [batch_id], references: [id])
+}
+
+// Attendance Model
+model Attendance {
+  id         String @id @default(auto()) @map("_id") @db.ObjectId
+  student_id String @db.ObjectId
+  batch_id   String @db.ObjectId
+  percentage String @default("0%")
+  attend     Json // JSON structure for daily attendance records
+
+  batch   batch   @relation(fields: [batch_id], references: [id])
+  student student @relation(fields: [student_id], references: [id])
+}
+
+// Join Table for Students and Batches
+// model StudentBatch {
+//   id        String @id @default(auto()) @map("_id") @db.ObjectId
+//   studentId String @db.ObjectId
+//   batchId   String @db.ObjectId
+
+//   student student @relation(fields: [studentId], references: [id])
+//   batch   batch   @relation(fields: [batchId], references: [id])
+
+//   @@unique([studentId, batchId]) // Ensures a student can be part of a batch only once
+// }
+
+// Timetable Model
+model FacultyTimetable {
+  id        String  @id @default(auto()) @map("_id") @db.ObjectId
+  facultyId String  @unique
+  schedule  Json // Use JSON for complex, nested array structures
+  faculty   faculty @relation(fields: [facultyId], references: [facultyId])
+}
+
+// Enums
+enum Gender {
+  MALE
+  FEMALE
+  OTHER
+}
+
+enum Role {
+  STUDENT
+  FACULTY
+  ADMIN
+  DEO
+}

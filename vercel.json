@@ -1,0 +1,21 @@
+{
+    "version": 2,
+    "builds": [
+      {
+        "src": "index.js",
+        "use": "@vercel/node"
+      },
+      { "src": "uploads/**/*", "use": "@vercel/static" }
+    ],
+    
+    "rewrites":[
+      {
+        "source" : "/(.*)",
+        "destination" : "/"
+
+      }
+    ]
+  }
+  
+
+
