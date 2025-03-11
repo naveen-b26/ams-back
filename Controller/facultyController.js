@@ -334,6 +334,7 @@ export const FacultyScanAuth = async (req, res) => {
   try {
     // Authorization header validation
     const { faculty } = req.body;
+    console.log("faculty:",faculty)
     const authHeader = req.headers.authorization;
 
     if (!authHeader || !authHeader.startsWith("Bearer ")) {
