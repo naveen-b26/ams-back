@@ -1,7 +1,8 @@
 import { PrismaClient } from "@prisma/client";
 
 import jwt from "jsonwebtoken";
-const { ObjectId } = require("mongodb");
+import { ObjectId } from "mongodb";
+
 const prisma = new PrismaClient();
 
 import bcrypt from "bcrypt";
