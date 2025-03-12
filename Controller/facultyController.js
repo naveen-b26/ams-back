@@ -2,7 +2,7 @@ import { PrismaClient } from "@prisma/client";
 
 import jwt from "jsonwebtoken";
 import { ObjectId } from "mongodb";
-
+import { getMongoDBCollection } from "../utils/mongoHelper"
 const prisma = new PrismaClient();
 
 import bcrypt from "bcrypt";
@@ -431,12 +431,14 @@ export const deleteFaculty = async (req, res) => {
 // };
 
 
+
 export const FacultyScanAuth = async (req, res) => {
   try {
-    // Extract faculty ID from token
+    // Extract faculty ID from request body
     const { faculty } = req.body;
     console.log("Faculty from request body:", faculty);
 
+    // Authorization Header Check
     const authHeader = req.headers.authorization;
     if (!authHeader || !authHeader.startsWith("Bearer ")) {
       return res.status(401).json({ message: "Authorization token missing." });
@@ -447,11 +449,10 @@ export const FacultyScanAuth = async (req, res) => {
       return res.status(400).json({ message: "Token missing." });
     }
 
-    const SECRET_KEY = new TextEncoder().encode(
-      "1d396a35fb765dde12659b90154f8e23f569b7682c9f9c2608e634a7787637d225840c2e3bb8f8"
-    );
-
+    // Verify Token
+    const SECRET_KEY = "1d396a35fb765dde12659b90154f8e23f569b7682c9f9c2608e634a7787637d225840c2e3bb8f8";
     const decoded = jwt.verify(token, SECRET_KEY, { algorithms: ["HS256"] });
+
     console.log("Decoded token:", decoded);
 
     const facultyId = decoded.facultyId;
@@ -461,10 +462,7 @@ export const FacultyScanAuth = async (req, res) => {
       return res.status(401).json({ message: "You are not authorized" });
     }
 
-    // Validate facultyId format before Prisma query
-    const isValidObjectId = (id) => ObjectId.isValid(id) && /^[a-f0-9]{24}$/.test(id);
-
-    // Verify and update faculty status
+    // ✅ Ensure facultyId is treated as a string, not ObjectId
     const facultydetail = await prisma.faculty.update({
       where: { facultyId: facultyId },
       data: { isVerified: true },
@@ -474,10 +472,10 @@ export const FacultyScanAuth = async (req, res) => {
       return res.status(403).json({ message: "Unauthorized faculty for this batch." });
     }
 
-    // ✅ Fix: Ensure facultyId is stored as a string
+    // ✅ Fix: Ensure facultyId is treated as a string in the Prisma query
     const facultyBatch = await prisma.batch.findFirst({
       where: {
-        inchargeId: facultyId, // Keep it as a string since `facultyId` is not an ObjectId
+        inchargeId: facultyId, // Treated as a string
       },
       select: { batchId: true },
     });
@@ -489,18 +487,22 @@ export const FacultyScanAuth = async (req, res) => {
     const batchId = facultyBatch.batchId;
     console.log("Batch ID:", batchId);
 
-    // Update attendance
+    // Get today's date
     const today = new Date().toISOString().split("T")[0];
     const attendanceCollection = await getMongoDBCollection("attendance");
 
+    // Fetch students for this batch
     const students = await prisma.student.findMany({
-      where: { batchId: batchId },
+      where: { batchIds: { has: batchId } }, // Ensure batchId is in batchIds array
       select: { id: true },
     });
 
     for (const student of students) {
       await attendanceCollection.updateOne(
-        { student_id: student.id, batch_id: batchId }, // Store as a string
+        {
+          student_id: student.id, // Keep as a string
+          batch_id: batchId, // Keep as a string
+        },
         {
           $setOnInsert: { student_id: student.id, batch_id: batchId, attend: {} },
           $push: { [`attend.${today}`]: 1 }, // Adding '1' (present) to today's attendance array
@@ -511,7 +513,7 @@ export const FacultyScanAuth = async (req, res) => {
 
     res.status(200).json({ message: "AUTH SUCCESSFUL & Attendance updated." });
   } catch (error) {
-    console.error(error);
+    console.error("Error in FacultyScanAuth:", error);
     res.status(500).json({
       message: "An error occurred while creating attendance.",
       error: error.message,
