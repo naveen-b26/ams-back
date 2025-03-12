@@ -121,7 +121,7 @@ model batch {
   name           String           @unique
   branch         String
   Batchyear      String
-  inchargeId     String?          
+  inchargeId     String?          @db.ObjectId
   faculty        faculty?         @relation(fields: [inchargeId], references: [id])
   studentIds     String[]         @db.ObjectId
   students       student[]        @relation(fields: [studentIds], references: [id]) // Many-to-many relation
