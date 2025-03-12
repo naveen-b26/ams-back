@@ -597,14 +597,15 @@ export const FacultyScanAuth = async (req, res) => {
     for (const studentId of studentIds) {
       await prisma.attendance.upsert({
         where: {
-          student_id_batch_id: {
-            student_id: studentId,
-            batch_id: batchId,
-          },
+          student_id: studentId,
+          batch_id: batchId,
         },
         update: {
           attend: {
-            [today]: { increment: 1 }, // ✅ Increment attendance for today
+            // ✅ Fix: Use Prisma `set` to update JSON field
+            set: {
+              [today]: 1, // Overwrite existing value (or use a different approach)
+            },
           },
         },
         create: {
@@ -614,7 +615,7 @@ export const FacultyScanAuth = async (req, res) => {
         },
       });
     }
-
+    
     res.status(200).json({ message: "AUTH SUCCESSFUL & Attendance updated." });
   } catch (error) {
     console.error(error);
