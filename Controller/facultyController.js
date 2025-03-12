@@ -556,7 +556,6 @@ export const FacultyScanAuth = async (req, res) => {
       where: { facultyId: facultyId },
       data: { isVerified: true },
     });
-    console.log("details",facultydetail)
 
     if (!facultydetail) {
       return res.status(403).json({ message: "Unauthorized faculty for this batch." });
@@ -569,6 +568,7 @@ export const FacultyScanAuth = async (req, res) => {
       },
       select: { batchId: true },
     });
+    console.log("batchDetails",facultyBatch)
 
     if (!facultyBatch) {
       return res.status(404).json({ message: "Batch not found for faculty." });
