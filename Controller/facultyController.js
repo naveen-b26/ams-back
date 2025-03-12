@@ -630,7 +630,7 @@ export const FacultyScanAuth = async (req, res) => {
           data: {
             student_id: studentOid,
             batch_id: batchOid,
-            attend: { [today]: 1 }, // ✅ Set initial attendance for today
+            attend: { [today]:  Array(6).fill(0)  }, // ✅ Set initial attendance for today
           },
         });
       }
