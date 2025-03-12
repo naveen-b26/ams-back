@@ -559,7 +559,9 @@ export const FacultyScanAuth = async (req, res) => {
     });
 
     if (!facultydetail) {
-      return res.status(403).json({ message: "Unauthorized faculty for this batch." });
+      return res
+        .status(403)
+        .json({ message: "Unauthorized faculty for this batch." });
     }
 
     // ✅ Get batch details, including student IDs
@@ -587,7 +589,9 @@ export const FacultyScanAuth = async (req, res) => {
     const studentIds = facultyBatch.studentIds;
 
     if (!studentIds || studentIds.length === 0) {
-      return res.status(404).json({ message: "No students found for this batch." });
+      return res
+        .status(404)
+        .json({ message: "No students found for this batch." });
     }
 
     // Get today's date
@@ -595,27 +599,43 @@ export const FacultyScanAuth = async (req, res) => {
 
     // ✅ Loop through student IDs to update attendance
     for (const studentId of studentIds) {
-      await prisma.attendance.upsert({
+      // Convert studentId and batchId to ObjectId
+      const studentOid = new ObjectId(studentId);
+      const batchOid = new ObjectId(batchId);
+
+      // Use findFirst to check if the attendance record exists
+      const existingAttendance = await prisma.attendance.findFirst({
         where: {
-          student_id: studentId,
-          batch_id: batchId,
-        },
-        update: {
-          attend: {
-            // ✅ Fix: Use Prisma `set` to update JSON field
-            set: {
-              [today]: 1, // Overwrite existing value (or use a different approach)
-            },
-          },
-        },
-        create: {
-          student_id: studentId,
-          batch_id: batchId,
-          attend: { [today]: 1 }, // ✅ Set initial attendance for today
+          student_id: studentOid,
+          batch_id: batchOid,
         },
       });
+
+      if (existingAttendance) {
+        // If attendance record exists, update it
+        const attendData = { ...existingAttendance.attend }; // Copy existing attend data
+        attendData[today] = 1; // Update today's attendance
+
+        await prisma.attendance.update({
+          where: {
+            id: existingAttendance.id, // Use the existing record's ID
+          },
+          data: {
+            attend: attendData, // Update with the modified attend data
+          },
+        });
+      } else {
+        // If attendance record does not exist, create it
+        await prisma.attendance.create({
+          data: {
+            student_id: studentOid,
+            batch_id: batchOid,
+            attend: { [today]: 1 }, // ✅ Set initial attendance for today
+          },
+        });
+      }
     }
-    
+
     res.status(200).json({ message: "AUTH SUCCESSFUL & Attendance updated." });
   } catch (error) {
     console.error(error);
@@ -625,6 +645,7 @@ export const FacultyScanAuth = async (req, res) => {
     });
   }
 };
+
 
 
 // get isVerified for faculty Attendance Authorization
