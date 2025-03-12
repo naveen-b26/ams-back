@@ -567,6 +567,8 @@ export const FacultyScanAuth = async (req, res) => {
         inchargeId: facultydetail.id,
       },
       select: { batchId: true },
+      select:{id:true},
+      select:{studentIds:true}
     });
     console.log("batchDetails",facultyBatch)
 
