@@ -556,6 +556,7 @@ export const FacultyScanAuth = async (req, res) => {
       where: { facultyId: facultyId },
       data: { isVerified: true },
     });
+    console.log("details",facultydetail)
 
     if (!facultydetail) {
       return res.status(403).json({ message: "Unauthorized faculty for this batch." });
@@ -564,7 +565,7 @@ export const FacultyScanAuth = async (req, res) => {
     // ✅ Fix: Ensure facultyId is stored as a string
     const facultyBatch = await prisma.batch.findFirst({
       where: {
-        inchargeId: facultyId,
+        inchargeId: facultydetail.id,
       },
       select: { batchId: true },
     });
