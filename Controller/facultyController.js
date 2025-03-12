@@ -275,260 +275,11 @@ export const deleteFaculty = async (req, res) => {
   }
 };
 
-// facutly scan and create the students database
-// export const FacultyScanAuth = async (req, res) => {
-//   try {
-//     // Authorization header validation
-//     const { faculty } = req.body;
-//     const authHeader = req.headers.authorization;
-//     if (!authHeader || !authHeader.startsWith("Bearer ")) {
-//       return res.status(401).json({ message: "Authorization token missing." });
-//     }
-
-//     const token = authHeader.split(" ")[1];
-//     if (!token) {
-//       return res.status(400).json({ message: "Token missing." });
-//     }
-//     const SECRET_KEY = new TextEncoder().encode(
-//       "1d396a35fb765dde12659b90154f8e23f569b7682c9f9c2608e634a7787637d225840c2e3bb8f8"
-//     );
-//     if (!SECRET_KEY) {
-//       return res.status(500).json({ message: "SECRET_KEY is not set." });
-//     }
-//     // Decode and validate token
-//     const decoded = jwt.verify(token, SECRET_KEY, { algorithms: ["HS256"] });
-//     console.log(decoded);
-//     const now = Math.floor(Date.now() / 1000);
-//     if (now - decoded.timestamp > 15000) {
-//       return res.status(401).json({ message: "Token expired." });
-//     }
-
-//     const facultyId = decoded.facultyId;
-//     console.log(facultyId);
-//     if (faculty != facultyId) {
-//       return res.status(401).json({ message: "You are not authorized" });
-//     }
-
-//     const facultydetail = await prisma.faculty.update({
-//       where: { facultyId: facultyId },
-//       data: { isVerified: true },
-//     });
-
-//     if (!facultydetail) {
-//       return res
-//         .status(403)
-//         .json({ message: "Unauthorized faculty for this batch." });
-//     }
-
-//     res.status(200).json({ message: "AUTH SUCCESSFUL" });
-//   } catch (error) {
-//     console.error(error);
-//     res.status(500).json({
-//       message: "An error occurred while creating attendance.",
-//       error: error.message,
-//     });
-//   }
-// };
-
-
-//2
-// export const FacultyScanAuth = async (req, res) => {
-//   try {
-//     // Authorization header validation
-//     const { faculty } = req.body;
-//     console.log("faculty:", faculty)
-//     const authHeader = req.headers.authorization;
-
-//     if (!authHeader || !authHeader.startsWith("Bearer ")) {
-//       return res.status(401).json({ message: "Authorization token missing." });
-//     }
-
-//     const token = authHeader.split(" ")[1];
-//     if (!token) {
-//       return res.status(400).json({ message: "Token missing." });
-//     }
-
-//     const SECRET_KEY = new TextEncoder().encode(
-//       "1d396a35fb765dde12659b90154f8e23f569b7682c9f9c2608e634a7787637d225840c2e3bb8f8"
-//     );
-
-//     if (!SECRET_KEY) {
-//       return res.status(500).json({ message: "SECRET_KEY is not set." });
-//     }
-
-//     // Decode and validate token
-//     const decoded = jwt.verify(token, SECRET_KEY, { algorithms: ["HS256"] });
-//     console.log(decoded);
-
-//     const now = Math.floor(Date.now() / 1000);
-//     if (now - decoded.timestamp > 15000) {
-//       return res.status(401).json({ message: "Token expired." });
-//     }
-
-//     const facultyId = decoded.facultyId;
-//     console.log(facultyId);
-//     if (faculty != facultyId) {
-//       return res.status(401).json({ message: "You are not authorized" });
-//     }
-
-//     // Verify and update faculty status
-//     const facultydetail = await prisma.faculty.update({
-//       where: { facultyId: facultyId },
-//       data: { isVerified: true },
-//     });
-
-//     if (!facultydetail) {
-//       return res.status(403).json({ message: "Unauthorized faculty for this batch." });
-//     }
-
-//     // Fetch the batch ID linked to the faculty
-//     //try this
-//     const isValidObjectId = (id) => ObjectId.isValid(id) && String(new ObjectId(id)) === id;
-
-//     const facultyBatch = await prisma.batch.findFirst({
-//       where: {
-//         inchargeId: isValidObjectId(facultyId) ? new ObjectId(facultyId) : facultyId, // Fix here
-//       },
-//       select: { batchId: true },
-//     });
-
-
-//     if (!facultyBatch) {
-//       return res.status(404).json({ message: "Batch not found for faculty." });
-//     }
-
-//     const batchId = facultyBatch.batchId;
-
-//     // Get today's date in the required format (YYYY-MM-DD)
-//     const today = new Date().toISOString().split("T")[0];
-
-//     // Get the attendance collection from MongoDB
-//     const attendanceCollection = await getMongoDBCollection("attendance");
-
-//     // Update attendance records for students in this batch
-//     const students = await prisma.student.findMany({
-//       where: { batchId: batchId },
-//       select: { id: true },
-//     });
-
-//     for (const student of students) {
-//       await attendanceCollection.updateOne(
-//         { student_id: new ObjectId(student.id), batch_id: new ObjectId(batchId) },
-//         {
-//           $setOnInsert: { student_id: new ObjectId(student.id), batch_id: new ObjectId(batchId), attend: {} },
-//           $push: { [`attend.${today}`]: 1 }, // Adding '1' (present) to today's attendance array
-//         },
-//         { upsert: true }
-//       );
-//     }
-
-//     res.status(200).json({ message: "AUTH SUCCESSFUL & Attendance updated." });
-//   } catch (error) {
-//     console.error(error);
-//     res.status(500).json({
-//       message: "An error occurred while creating attendance.",
-//       error: error.message,
-//     });
-//   }
-// };
-
-
-
-//3
-// export const FacultyScanAuth = async (req, res) => {
-//   try {
-//     // Extract faculty ID from token
-//     const { faculty } = req.body;
-//     console.log("Faculty from request body:", faculty);
-
-//     const authHeader = req.headers.authorization;
-//     if (!authHeader || !authHeader.startsWith("Bearer ")) {
-//       return res.status(401).json({ message: "Authorization token missing." });
-//     }
-
-//     const token = authHeader.split(" ")[1];
-//     if (!token) {
-//       return res.status(400).json({ message: "Token missing." });
-//     }
-
-//     const SECRET_KEY = new TextEncoder().encode(
-//       "1d396a35fb765dde12659b90154f8e23f569b7682c9f9c2608e634a7787637d225840c2e3bb8f8"
-//     );
-
-//     const decoded = jwt.verify(token, SECRET_KEY, { algorithms: ["HS256"] });
-//     console.log("Decoded token:", decoded);
-
-//     const facultyId = decoded.facultyId;
-//     console.log("Faculty ID from token:", facultyId);
-
-//     if (faculty !== facultyId) {
-//       return res.status(401).json({ message: "You are not authorized" });
-//     }
-
-//     // Validate facultyId format before Prisma query
-//     const isValidObjectId = (id) => ObjectId.isValid(id) && /^[a-f0-9]{24}$/.test(id);
-
-//     // Verify and update faculty status
-//     const facultydetail = await prisma.faculty.update({
-//       where: { facultyId: facultyId },
-//       data: { isVerified: true },
-//     });
-
-//     if (!facultydetail) {
-//       return res.status(403).json({ message: "Unauthorized faculty for this batch." });
-//     }
-
-//     // ✅ Fix: Ensure facultyId is stored as a string
-//     const facultyBatch = await prisma.batch.findFirst({
-//       where: {
-//         inchargeId: facultyId, // Keep it as a string since `facultyId` is not an ObjectId
-//       },
-//       select: { batchId: true },
-//     });
-
-//     if (!facultyBatch) {
-//       return res.status(404).json({ message: "Batch not found for faculty." });
-//     }
-
-//     const batchId = facultyBatch.batchId;
-//     console.log("Batch ID:", batchId);
-
-//     // Update attendance
-//     const today = new Date().toISOString().split("T")[0];
-//     const attendanceCollection = await getMongoDBCollection("attendance");
-
-//     const students = await prisma.student.findMany({
-//       where: { batchId: batchId },
-//       select: { id: true },
-//     });
-
-//     for (const student of students) {
-//       await attendanceCollection.updateOne(
-//         { student_id: student.id, batch_id: batchId }, // Store as a string
-//         {
-//           $setOnInsert: { student_id: student.id, batch_id: batchId, attend: {} },
-//           $push: { [`attend.${today}`]: 1 }, // Adding '1' (present) to today's attendance array
-//         },
-//         { upsert: true }
-//       );
-//     }
-
-//     res.status(200).json({ message: "AUTH SUCCESSFUL & Attendance updated." });
-//   } catch (error) {
-//     console.error(error);
-//     res.status(500).json({
-//       message: "An error occurred while creating attendance.",
-//       error: error.message,
-//     });
-//   }
-// };
 
 export const FacultyScanAuth = async (req, res) => {
   try {
-    // Extract faculty ID from token
+    // Authorization header validation
     const { faculty } = req.body;
-    console.log("Faculty from request body:", faculty);
-
     const authHeader = req.headers.authorization;
     if (!authHeader || !authHeader.startsWith("Bearer ")) {
       return res.status(401).json({ message: "Authorization token missing." });
@@ -538,21 +289,26 @@ export const FacultyScanAuth = async (req, res) => {
     if (!token) {
       return res.status(400).json({ message: "Token missing." });
     }
-
-    const SECRET_KEY =
-      "1d396a35fb765dde12659b90154f8e23f569b7682c9f9c2608e634a7787637d225840c2e3bb8f8";
+    const SECRET_KEY = new TextEncoder().encode(
+      "1d396a35fb765dde12659b90154f8e23f569b7682c9f9c2608e634a7787637d225840c2e3bb8f8"
+    );
+    if (!SECRET_KEY) {
+      return res.status(500).json({ message: "SECRET_KEY is not set." });
+    }
+    // Decode and validate token
     const decoded = jwt.verify(token, SECRET_KEY, { algorithms: ["HS256"] });
-
-    console.log("Decoded token:", decoded);
+    console.log(decoded);
+    const now = Math.floor(Date.now() / 1000);
+    if (now - decoded.timestamp > 15000) {
+      return res.status(401).json({ message: "Token expired." });
+    }
 
     const facultyId = decoded.facultyId;
-    console.log("Faculty ID from token:", facultyId);
-
-    if (faculty !== facultyId) {
+    console.log(facultyId);
+    if (faculty != facultyId) {
       return res.status(401).json({ message: "You are not authorized" });
     }
 
-    // Verify and update faculty status
     const facultydetail = await prisma.faculty.update({
       where: { facultyId: facultyId },
       data: { isVerified: true },
@@ -564,79 +320,7 @@ export const FacultyScanAuth = async (req, res) => {
         .json({ message: "Unauthorized faculty for this batch." });
     }
 
-    // ✅ Get batch details, including student IDs
-    const facultyBatch = await prisma.batch.findFirst({
-      where: {
-        inchargeId: facultydetail.id,
-      },
-      select: {
-        batchId: true,
-        id: true,
-        studentIds: true, // ✅ Fetch student IDs directly
-      },
-    });
-
-    console.log("Batch Details:", facultyBatch);
-
-    if (!facultyBatch) {
-      return res.status(404).json({ message: "Batch not found for faculty." });
-    }
-
-    const batchId = facultyBatch.id;
-    console.log("Batch ID:", batchId);
-
-    // ✅ Use studentIds from batch details
-    const studentIds = facultyBatch.studentIds;
-
-    if (!studentIds || studentIds.length === 0) {
-      return res
-        .status(404)
-        .json({ message: "No students found for this batch." });
-    }
-
-    // Get today's date
-    const today = new Date().toISOString().split("T")[0];
-
-    // ✅ Loop through student IDs to update attendance
-    for (const studentId of studentIds) {
-      // Convert studentId and batchId to ObjectId
-      const studentOid = new ObjectId(studentId);
-      const batchOid = new ObjectId(batchId);
-
-      // Use findFirst to check if the attendance record exists
-      const existingAttendance = await prisma.attendance.findFirst({
-        where: {
-          student_id: studentOid,
-          batch_id: batchOid,
-        },
-      });
-
-      if (existingAttendance) {
-        // If attendance record exists, update it
-        const attendData = { ...existingAttendance.attend }; // Copy existing attend data
-        attendData[today] = 1; // Update today's attendance
-
-        await prisma.attendance.update({
-          where: {
-            id: existingAttendance.id, // Use the existing record's ID
-          },
-          data: {
-            attend: attendData, // Update with the modified attend data
-          },
-        });
-      } else {
-        // If attendance record does not exist, create it
-        await prisma.attendance.create({
-          data: {
-            student_id: studentOid,
-            batch_id: batchOid,
-            attend: { [today]:  Array(6).fill(0)  }, // ✅ Set initial attendance for today
-          },
-        });
-      }
-    }
-
-    res.status(200).json({ message: "AUTH SUCCESSFUL & Attendance updated." });
+    res.status(200).json({ message: "AUTH SUCCESSFUL" });
   } catch (error) {
     console.error(error);
     res.status(500).json({
@@ -645,6 +329,9 @@ export const FacultyScanAuth = async (req, res) => {
     });
   }
 };
+
+
+
 
 
 

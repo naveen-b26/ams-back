@@ -19,7 +19,7 @@ export const confirmAttendance = async (req, res) => {
   try {
     // Extract studentId from the request body
     const { student_id } = req.body;
-
+    console.log(student_id)
     // Validate authorization header
     const authHeader = req.headers.authorization;
     if (!authHeader || !authHeader.startsWith("Bearer ")) {
