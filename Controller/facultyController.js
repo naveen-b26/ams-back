@@ -539,7 +539,8 @@ export const FacultyScanAuth = async (req, res) => {
       return res.status(400).json({ message: "Token missing." });
     }
 
-    const SECRET_KEY = "1d396a35fb765dde12659b90154f8e23f569b7682c9f9c2608e634a7787637d225840c2e3bb8f8";
+    const SECRET_KEY =
+      "1d396a35fb765dde12659b90154f8e23f569b7682c9f9c2608e634a7787637d225840c2e3bb8f8";
     const decoded = jwt.verify(token, SECRET_KEY, { algorithms: ["HS256"] });
 
     console.log("Decoded token:", decoded);
@@ -561,50 +562,55 @@ export const FacultyScanAuth = async (req, res) => {
       return res.status(403).json({ message: "Unauthorized faculty for this batch." });
     }
 
-    // ✅ Fix: Ensure facultyId is stored as a string
+    // ✅ Get batch details, including student IDs
     const facultyBatch = await prisma.batch.findFirst({
       where: {
         inchargeId: facultydetail.id,
       },
-      select: { batchId: true },
-      select:{id:true},
-      select:{studentIds:true}
+      select: {
+        batchId: true,
+        id: true,
+        studentIds: true, // ✅ Fetch student IDs directly
+      },
     });
-    console.log("batchDetails",facultyBatch)
+
+    console.log("Batch Details:", facultyBatch);
 
     if (!facultyBatch) {
       return res.status(404).json({ message: "Batch not found for faculty." });
     }
 
-    const batchId = facultyBatch.batchId;
+    const batchId = facultyBatch.id;
     console.log("Batch ID:", batchId);
+
+    // ✅ Use studentIds from batch details
+    const studentIds = facultyBatch.studentIds;
+
+    if (!studentIds || studentIds.length === 0) {
+      return res.status(404).json({ message: "No students found for this batch." });
+    }
 
     // Get today's date
     const today = new Date().toISOString().split("T")[0];
 
-    // Fetch students in this batch
-    const students = await prisma.student.findMany({
-      where: { batchIds: { has: batchId } }, // Corrected batch lookup
-      select: { id: true },
-    });
-
-    for (const student of students) {
+    // ✅ Loop through student IDs to update attendance
+    for (const studentId of studentIds) {
       await prisma.attendance.upsert({
         where: {
           student_id_batch_id: {
-            student_id: student.id,
+            student_id: studentId,
             batch_id: batchId,
           },
         },
         update: {
           attend: {
-            [today]: { increment: 1 }, // Increment attendance for today
+            [today]: { increment: 1 }, // ✅ Increment attendance for today
           },
         },
         create: {
-          student_id: student.id,
+          student_id: studentId,
           batch_id: batchId,
-          attend: { [today]: 1 }, // Set initial attendance for today
+          attend: { [today]: 1 }, // ✅ Set initial attendance for today
         },
       });
     }
