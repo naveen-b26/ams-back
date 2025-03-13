@@ -605,18 +605,6 @@ export const AttendanceRange = async (req, res) => {
   }
 };
 
-// ✅ Helper function to generate date range
-const getDatesBetween = (start, end) => {
-  let dates = [];
-  let currentDate = new Date(start);
-
-  while (currentDate <= end) {
-    dates.push(new Date(currentDate));
-    currentDate.setDate(currentDate.getDate() + 1);
-  }
-
-  return dates;
-};
 
 
 // Helper function to generate dates between start and end
