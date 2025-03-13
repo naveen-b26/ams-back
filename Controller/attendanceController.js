@@ -332,8 +332,8 @@ export const getStudentsReport = async (req, res) => {
           periodStatus === 1
             ? "Present"
             : periodStatus === 0
-            ? "Absent"
-            : "Not Marked",
+              ? "Absent"
+              : "Not Marked",
       };
     });
 
@@ -537,8 +537,9 @@ export const AttendanceRange = async (req, res) => {
   try {
     // Validate student exists
     const student = await prisma.student.findUnique({
-      where: { studentId: studentId },
+      where: { id: studentId }, // Fix: Use "id" instead of "studentId"
     });
+
     if (!student) {
       return res.status(404).json({ error: "Student not found" });
     }
@@ -550,31 +551,73 @@ export const AttendanceRange = async (req, res) => {
       return res.status(400).json({ error: "Invalid date format" });
     }
     if (start > end) {
-      return res
-        .status(400)
-        .json({ error: "Start date must be before end date" });
+      return res.status(400).json({ error: "Start date must be before end date" });
     }
 
-    // Get student's attendance record
-    const attendance = await prisma.attendance.findFirst({
-      where: { student_id: student.id },
+    // 🔥 Find all batches where student is enrolled
+    const batches = await prisma.batch.findMany({
+      where: {
+        studentIds: { has: studentId }, // Find batches where student is enrolled
+      },
+      select: { id: true }, // Only fetch batch IDs
+    });
+
+    if (batches.length === 0) {
+      return res.status(404).json({ error: "No batches found for this student" });
+    }
+
+    // Extract batch IDs
+    const batchIds = batches.map(batch => batch.id);
+
+    // 🔥 Fetch attendance records for all batches
+    const attendances = await prisma.attendance.findMany({
+      where: {
+        student_id: studentId,
+        batch_id: { in: batchIds }, // Match any of the student's batch IDs
+      },
     });
 
     // Generate all dates in the range
     const dates = getDatesBetween(start, end);
 
-    // Build response
+    // 🔥 Merge attendance data from multiple batches
     const result = dates.map((date) => {
       const formattedDate = date.toISOString().split("T")[0];
-      const attendData = attendance?.attend[formattedDate] || [];
-      return { date: formattedDate, attend: attendData };
+
+      // Collect attendance data from all batches
+      let attendData = [];
+      attendances.forEach(attendance => {
+        if (attendance.attend[formattedDate]) {
+          attendData.push({
+            batch_id: attendance.batch_id,
+            attend: attendance.attend[formattedDate],
+          });
+        }
+      });
+
+      return { date: formattedDate, attendData };
     });
 
     res.json(result);
   } catch (error) {
+    console.error("Error fetching attendance range:", error);
     res.status(500).json({ error: "Internal server error" });
   }
 };
+
+// ✅ Helper function to generate date range
+const getDatesBetween = (start, end) => {
+  let dates = [];
+  let currentDate = new Date(start);
+
+  while (currentDate <= end) {
+    dates.push(new Date(currentDate));
+    currentDate.setDate(currentDate.getDate() + 1);
+  }
+
+  return dates;
+};
+
 
 // Helper function to generate dates between start and end
 function getDatesBetween(start, end) {
