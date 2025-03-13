@@ -19,7 +19,8 @@ export const confirmAttendance = async (req, res) => {
   try {
     // Extract studentId from the request body
     const { student_id } = req.body;
-    console.log(student_id)
+    console.log("Received Student ID:", student_id);
+
     // Validate authorization header
     const authHeader = req.headers.authorization;
     if (!authHeader || !authHeader.startsWith("Bearer ")) {
@@ -35,14 +36,15 @@ export const confirmAttendance = async (req, res) => {
     let decoded;
     try {
       decoded = jwt.verify(token, SECRET_KEY, { algorithms: ["HS256"] });
+      console.log("Decoded JWT:", decoded);
     } catch (error) {
       console.error("Invalid token:", error);
       return res.status(401).json({ message: "Invalid token." });
     }
 
-    // Check token expiration
+    // Check token expiration (Corrected logic)
     const now = Math.floor(Date.now() / 1000); // Current timestamp in seconds
-    if (now - decoded.timestamp > 1500000) {
+    if (decoded.exp && decoded.exp < now) {
       console.log("Token expired");
       return res.status(401).json({ message: "Token expired." });
     }
@@ -51,17 +53,19 @@ export const confirmAttendance = async (req, res) => {
     if (!student_id) {
       return res.status(400).json({ message: "Student ID is required." });
     }
+
     // Fetch the batch details for the decoded.batchId and check if the studentId exists in studentIds
     const batch = await prisma.batch.findFirst({
       where: {
         id: decoded.batch_id,
         studentIds: {
-          has: student_id, // Check if the studentId exists in the studentIds array
+          has: student_id, // Ensure student ID exists in the batch
         },
       },
     });
 
     if (!batch) {
+      console.log("Batch not found or student not enrolled.");
       return res
         .status(404)
         .json({ message: "Batch not found or student is not enrolled." });
@@ -74,16 +78,16 @@ export const confirmAttendance = async (req, res) => {
     let attendance = await prisma.attendance.findFirst({
       where: {
         student_id: student_id,
-        batch_id: batch.id,
+        batch_id: batch.id, // ✅ Fix: Ensure correct field name
       },
     });
 
     if (!attendance) {
-      // Create a new attendance record if none exists
+      console.log("Creating new attendance record...");
       attendance = await prisma.attendance.create({
         data: {
           student_id: student_id,
-          batchId: decoded.batch_id,
+          batch_id: decoded.batch_id, // ✅ Fix: Correct field name
           attend: {}, // Initialize an empty JSON object for attendance records
         },
       });
@@ -91,7 +95,7 @@ export const confirmAttendance = async (req, res) => {
 
     // Parse the attendance JSON structure
     let attendData = attendance.attend || {};
-    console.log("Before Update - Attendance Data:", attendData); // Debugging: Log the current state of attend
+    console.log("Before Update - Attendance Data:", attendData);
 
     if (!attendData[todayDate]) {
       // If no entry for today, initialize with an array of six zeros
@@ -107,7 +111,7 @@ export const confirmAttendance = async (req, res) => {
     // Mark attendance for the given period
     attendData[todayDate][periodIndex] = 1;
 
-    console.log("After Update - Attendance Data:", attendData); // Debugging: Log the updated state of attend
+    console.log("After Update - Attendance Data:", attendData);
 
     // Save the updated attendance record
     await prisma.attendance.update({
