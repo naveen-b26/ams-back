@@ -42,8 +42,8 @@ export const confirmAttendance = async (req, res) => {
       return res.status(401).json({ message: "Invalid token." });
     }
 
-    // Check token expiration (Corrected logic)
-    const now = Math.floor(Date.now() / 1000); // Current timestamp in seconds
+    // Check token expiration
+    const now = Math.floor(Date.now() / 1000);
     if (decoded.exp && decoded.exp < now) {
       console.log("Token expired");
       return res.status(401).json({ message: "Token expired." });
@@ -54,21 +54,19 @@ export const confirmAttendance = async (req, res) => {
       return res.status(400).json({ message: "Student ID is required." });
     }
 
-    // Fetch the batch details for the decoded.batchId and check if the studentId exists in studentIds
+    // Fetch the batch details for the decoded.batch_id and check if the studentId exists in studentIds
     const batch = await prisma.batch.findFirst({
       where: {
         id: decoded.batch_id,
         studentIds: {
-          has: student_id, // Ensure student ID exists in the batch
+          has: student_id,
         },
       },
     });
 
     if (!batch) {
       console.log("Batch not found or student not enrolled.");
-      return res
-        .status(404)
-        .json({ message: "Batch not found or student is not enrolled." });
+      return res.status(404).json({ message: "Batch not found or student is not enrolled." });
     }
 
     // Get today's date in YYYY-MM-DD format
@@ -78,7 +76,7 @@ export const confirmAttendance = async (req, res) => {
     let attendance = await prisma.attendance.findFirst({
       where: {
         student_id: student_id,
-        batch_id: batch.id, // ✅ Fix: Ensure correct field name
+        batch_id: batch.id,
       },
     });
 
@@ -87,8 +85,8 @@ export const confirmAttendance = async (req, res) => {
       attendance = await prisma.attendance.create({
         data: {
           student_id: student_id,
-          batch_id: decoded.batch_id, // ✅ Fix: Correct field name
-          attend: {}, // Initialize an empty JSON object for attendance records
+          batch_id: decoded.batch_id,
+          attend: {},
         },
       });
     }
@@ -106,6 +104,12 @@ export const confirmAttendance = async (req, res) => {
     const periodIndex = decoded.period - 1; // Convert period to zero-based index
     if (periodIndex < 0 || periodIndex >= 6) {
       return res.status(400).json({ message: "Invalid period number." });
+    }
+
+    // Check if attendance is already marked for this period
+    if (attendData[todayDate][periodIndex] === 1) {
+      console.log(`Attendance already marked for period ${decoded.period}.`);
+      return res.status(201).json({ message: "Attendance already marked." });
     }
 
     // Mark attendance for the given period
